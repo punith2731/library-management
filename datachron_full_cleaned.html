@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .book-card {
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+        
+        .book-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .search-input:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .login-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        
+        .input-group input:focus + label,
+        .input-group input:not(:placeholder-shown) + label {
+            transform: translateY(-20px) scale(0.8);
+            color: #3b82f6;
+        }
+        
+        .input-group label {
+            position: absolute;
+            left: 12px;
+            top: 12px;
+            transition: all 0.2s ease;
+            pointer-events: none;
+            color: #6b7280;
+        }
+        
+        .page-transition {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        
+        .page-hidden {
+            opacity: 0;
+            transform: translateY(20px);
+            pointer-events: none;
+        }
+        
+        .form-error {
+            color: #ef4444;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        
+        .input-error {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+        }
+        
+        .password-strength {
+            height: 4px;
+            border-radius: 2px;
+            margin-top: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .strength-weak { background-color: #ef4444; width: 33%; }
+        .strength-medium { background-color: #f59e0b; width: 66%; }
+        .strength-strong { background-color: #10b981; width: 100%; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Login Page -->
+    <div id="loginPage" class="login-bg min-h-screen flex items-center justify-center p-4">
+        <div class="glass-effect rounded-2xl shadow-2xl w-full max-w-md p-8">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
+                    <i class="fas fa-book-open text-2xl text-white"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Library Management</h1>
+                <p class="text-gray-600">Sign in to access your library account</p>
+            </div>
+            
+            <form id="loginForm" class="space-y-6">
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="loginUsername"
+                        placeholder=" "
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        required
+                    >
+                    <label for="loginUsername">Username or Email</label>
+                </div>
+                
+                <div class="input-group">
+                    <input 
+                        type="password" 
+                        id="loginPassword"
+                        placeholder=" "
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                        required
+                    >
+                    <label for="loginPassword">Password</label>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center">
+                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="ml-2 text-sm text-gray-600">Remember me</span>
+                    </label>
+                    <a href="#" class="text-sm text-blue-600 hover:text-blue-500">Forgot password?</a>
+                </div>
+                
+                <button 
+                    type="submit" 
+                    id="loginButton"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                >
+                    <span id="loginButtonText">Sign In</span>
+                    <div id="loginSpinner" class="loading-spinner ml-2" style="display: none;"></div>
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600">
+                    Don't have an account? 
+                    <button id="showSignupBtn" class="text-blue-600 hover:text-blue-500 font-medium">Sign up</button>
+                </p>
+            </div>
+            
+            <!-- Demo Credentials -->
+            <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                <h4 class="text-sm font-medium text-blue-900 mb-2">Demo Credentials:</h4>
+                <div class="text-xs text-blue-700 space-y-1">
+                    <p><strong>Admin:</strong> admin / admin123</p>
+                    <p><strong>User:</strong> john_doe / password</p>
+                    <p><strong>Librarian:</strong> librarian / lib123</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signup Page -->
+    <div id="signupPage" class="login-bg min-h-screen flex items-center justify-center p-4" style="display: none;">
+        <div class="glass-effect rounded-2xl shadow-2xl w-full max-w-md p-8">
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-green-600 rounded-full mb-4">
+                    <i class="fas fa-user-plus text-2xl text-white"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 mb-2">Create Account</h1>
+                <p class="text-gray-600">Join our library community today</p>
+            </div>
+            
+            <form id="signupForm" class="space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="signupFirstName"
+                            placeholder=" "
+                            class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                            required
+                        >
+                        <label for="signupFirstName">First Name</label>
+                        <div id="firstNameError" class="form-error" style="display: none;"></div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="signupLastName"
+                            placeholder=" "
+                            class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                            required
+                        >
+                        <label for="signupLastName">Last Name</label>
+                        <div id="lastNameError" class="form-error" style="display: none;"></div>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <input 
+                        type="email" 
+                        id="signupEmail"
+                        placeholder=" "
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                        required
+                    >
+                    <label for="signupEmail">Email Address</label>
+                    <div id="emailError" class="form-error" style="display: none;"></div>
+                </div>
+                
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="signupUsername"
+                        placeholder=" "
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                        required
+                    >
+                    <label for="signupUsername">Username</label>
+                    <div id="usernameError" class="form-error" style="display: none;"></div>
+                </div>
+                
+                <div class="input-group">
+                    <input 
+                        type="password" 
+                        id="signupPassword"
+                        placeholder=" "
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                        required
+                    >
+                    <label for="signupPassword">Password</label>
+                    <div class="password-strength bg-gray-200" id="passwordStrength"></div>
+                    <div id="passwordError" class="form-error" style="display: none;"></div>
+                </div>
+                
+                <div class="input-group">
+                    <input 
+                        type="password" 
+                        id="signupConfirmPassword"
+                        placeholder=" "
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                        required
+                    >
+                    <label for="signupConfirmPassword">Confirm Password</label>
+                    <div id="confirmPasswordError" class="form-error" style="display: none;"></div>
+                </div>
+                
+                <div class="input-group">
+                    <select 
+                        id="signupRole"
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                        required
+                    >
+                        <option value="">Select Role</option>
+                        <option value="Member">Member</option>
+                        <option value="Student">Student</option>
+                        <option value="Faculty">Faculty</option>
+                    </select>
+                    <div id="roleError" class="form-error" style="display: none;"></div>
+                </div>
+                
+                <div class="flex items-center">
+                    <input 
+                        type="checkbox" 
+                        id="agreeTerms"
+                        class="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                        required
+                    >
+                    <label for="agreeTerms" class="ml-2 text-sm text-gray-600">
+                        I agree to the <a href="#" class="text-green-600 hover:text-green-500">Terms of Service</a> and 
+                        <a href="#" class="text-green-600 hover:text-green-500">Privacy Policy</a>
+                    </label>
+                </div>
+                <div id="termsError" class="form-error" style="display: none;"></div>
+                
+                <button 
+                    type="submit" 
+                    id="signupButton"
+                    class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                >
+                    <span id="signupButtonText">Create Account</span>
+                    <div id="signupSpinner" class="loading-spinner ml-2" style="display: none;"></div>
+                </button>
+            </form>
+            
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600">
+                    Already have an account? 
+                    <button id="showLoginBtn" class="text-green-600 hover:text-green-500 font-medium">Sign in</button>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" class="page-transition page-hidden">
+        <!-- Navigation Header -->
+        <nav class="bg-white shadow-lg border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-book-open text-2xl text-blue-600"></i>
+                        <h1 class="text-xl font-bold text-gray-900">Library Management System</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full">
+                            <i class="fas fa-book text-blue-600"></i>
+                            <span class="text-sm font-medium text-blue-700">Books Borrowed: <span id="borrowedCount">0</span></span>
+                        </div>
+                        
+                        <!-- User Menu -->
+                        <div class="relative">
+                            <button 
+                                id="userMenuButton"
+                                class="flex items-center space-x-2 text-gray-700 hover:text-gray-900 focus:outline-none"
+                            >
+                                <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-white text-sm"></i>
+                                </div>
+                                <span class="text-sm font-medium" id="currentUserName">John Doe</span>
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </button>
+                            
+                            <div id="userDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50" style="display: none;">
+                                <div class="px-4 py-2 border-b border-gray-100">
+                                    <p class="text-sm font-medium text-gray-900" id="dropdownUserName">John Doe</p>
+                                    <p class="text-xs text-gray-500" id="dropdownUserRole">Member</p>
+                                </div>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-user mr-2"></i>Profile
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-history mr-2"></i>Borrow History
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-cog mr-2"></i>Settings
+                                </a>
+                                <div class="border-t border-gray-100">
+                                    <button 
+                                        id="logoutButton"
+                                        class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                    >
+                                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Search and Filter Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                    <div class="flex-1 max-w-lg">
+                        <div class="relative">
+                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            <input 
+                                type="text" 
+                                id="searchInput"
+                                placeholder="Search books by title or author..."
+                                class="search-input w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                            >
+                        </div>
+                    </div>
+                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                        <select id="categoryFilter" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">All Categories</option>
+                            <option value="Fiction">Fiction</option>
+                            <option value="Non-Fiction">Non-Fiction</option>
+                            <option value="Science">Science</option>
+                            <option value="Technology">Technology</option>
+                            <option value="History">History</option>
+                        </select>
+                        <select id="statusFilter" class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">All Books</option>
+                            <option value="available">Available</option>
+                            <option value="borrowed">Borrowed</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-blue-100">
+                            <i class="fas fa-books text-blue-600"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Total Books</p>
+                            <p class="text-2xl font-bold text-gray-900" id="totalBooks">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-green-100">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Available</p>
+                            <p class="text-2xl font-bold text-gray-900" id="availableBooks">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-yellow-100">
+                            <i class="fas fa-hand-holding text-yellow-600"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">Borrowed</p>
+                            <p class="text-2xl font-bold text-gray-900" id="borrowedBooks">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex items-center">
+                        <div class="p-3 rounded-full bg-purple-100">
+                            <i class="fas fa-users text-purple-600"></i>
+                        </div>
+                        <div class="ml-4">
+                            <p class="text-sm font-medium text-gray-600">My Books</p>
+                            <p class="text-2xl font-bold text-gray-900" id="myBorrowedBooks">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="flex justify-center items-center py-12">
+                <div class="loading-spinner"></div>
+                <span class="ml-3 text-gray-600">Loading books...</span>
+            </div>
+
+            <!-- Books Grid -->
+            <div id="booksGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 fade-in" style="display: none;">
+            </div>
+
+            <!-- No Results Message -->
+            <div id="noResults" class="text-center py-12" style="display: none;">
+                <i class="fas fa-search text-4xl text-gray-400 mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No books found</h3>
+                <p class="text-gray-600">Try adjusting your search criteria or filters.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="notification bg-white rounded-lg shadow-lg border-l-4 border-green-500 p-4 max-w-sm">
+        <div class="flex items-center">
+            <i class="fas fa-check-circle text-green-500 mr-3"></i>
+            <div>
+                <p class="font-medium text-gray-900" id="notificationTitle">Success!</p>
+                <p class="text-sm text-gray-600" id="notificationMessage">Action completed successfully.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Authentication Service
+        class AuthService {
+            static users = [
+                { 
+                    username: 'admin', 
+                    password: 'admin123', 
+                    name: 'Admin User', 
+                    role: 'Administrator',
+                    id: 'admin_user',
+                    email: 'admin@library.com'
+                },
+                { 
+                    username: 'john_doe', 
+                    password: 'password', 
+                    name: 'John Doe', 
+                    role: 'Member',
+                    id: 'john_doe',
+                    email: 'john@library.com'
+                },
+                { 
+                    username: 'librarian', 
+                    password: 'lib123', 
+                    name: 'Sarah Wilson', 
+                    role: 'Librarian',
+                    id: 'librarian_user',
+                    email: 'sarah@library.com'
+                }
+            ];
+
+            static async login(username, password) {
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                const user = this.users.find(u => 
+                    (u.username === username || u.email === username) && u.password === password
+                );
+                
+                if (user) {
+                    const userData = { ...user };
+                    delete userData.password; // Don't store password
+                    localStorage.setItem('currentUser', JSON.stringify(userData));
+                    return userData;
+                }
+                
+                throw new Error('Invalid username or password');
+            }
+
+            static async signup(userData) {
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Check if username or email already exists
+                const existingUser = this.users.find(u => 
+                    u.username === userData.username || u.email === userData.email
+                );
+                
+                if (existingUser) {
+                    if (existingUser.username === userData.username) {
+                        throw new Error('Username already exists');
+                    } else {
+                        throw new Error('Email already exists');
+                    }
+                }
+                
+                // Create new user
+                const newUser = {
+                    id: `user_${Date.now()}`,
+                    username: userData.username,
+                    password: userData.password,
+                    name: `${userData.firstName} ${userData.lastName}`,
+                    email: userData.email,
+                    role: userData.role,
+                    createdAt: new Date().toISOString()
+                };
+                
+                // Add to users array (in real app, this would be saved to database)
+                this.users.push(newUser);
+                
+                // Return user data without password
+                const userResponse = { ...newUser };
+                delete userResponse.password;
+                
+                localStorage.setItem('currentUser', JSON.stringify(userResponse));
+                return userResponse;
+            }
+
+            static logout() {
+                localStorage.removeItem('currentUser');
+            }
+
+            static getCurrentUser() {
+                const userData = localStorage.getItem('currentUser');
+                return userData ? JSON.parse(userData) : null;
+            }
+
+            static isAuthenticated() {
+                return this.getCurrentUser() !== null;
+            }
+        }
+
+        // Form Validation Service
+        class ValidationService {
+            static validateEmail(email) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return emailRegex.test(email);
+            }
+
+            static validatePassword(password) {
+                const minLength = password.length >= 8;
+                const hasUpper = /[A-Z]/.test(password);
+                const hasLower = /[a-z]/.test(password);
+                const hasNumber = /\d/.test(password);
+                const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+                
+                let strength = 0;
+                if (minLength) strength++;
+                if (hasUpper) strength++;
+                if (hasLower) strength++;
+                if (hasNumber) strength++;
+                if (hasSpecial) strength++;
+                
+                return {
+                    isValid: minLength && hasUpper && hasLower && hasNumber,
+                    strength: strength <= 2 ? 'weak' : strength <= 4 ? 'medium' : 'strong',
+                    score: strength
+                };
+            }
+
+            static validateUsername(username) {
+                const minLength = username.length >= 3;
+                const validChars = /^[a-zA-Z0-9_]+$/.test(username);
+                return minLength && validChars;
+            }
+
+            static validateName(name) {
+                return name.trim().length >= 2 && /^[a-zA-Z\s]+$/.test(name);
+            }
+        }
+
+        // State Management (Context-like pattern)
+        class LibraryState {
+            constructor() {
+                this.books = [];
+                this.filteredBooks = [];
+                this.userBorrowedBooks = new Set();
+                this.currentUser = null;
+                this.isLoading = false;
+                this.subscribers = [];
+            }
+
+            subscribe(callback) {
+                this.subscribers.push(callback);
+            }
+
+            notify() {
+                this.subscribers.forEach(callback => callback(this));
+            }
+
+            setCurrentUser(user) {
+                this.currentUser = user;
+                this.notify();
+            }
+
+            setBooks(books) {
+                this.books = books;
+                this.filteredBooks = books;
+                this.notify();
+            }
+
+            setFilteredBooks(books) {
+                this.filteredBooks = books;
+                this.notify();
+            }
+
+            borrowBook(bookId) {
+                const book = this.books.find(b => b.id === bookId);
+                if (book && book.status === 'available' && this.currentUser) {
+                    book.status = 'borrowed';
+                    book.borrowedBy = this.currentUser.id;
+                    book.borrowDate = new Date().toISOString().split('T')[0];
+                    this.userBorrowedBooks.add(bookId);
+                    this.notify();
+                    return true;
+                }
+                return false;
+            }
+
+            returnBook(bookId) {
+                const book = this.books.find(b => b.id === bookId);
+                if (book && book.borrowedBy === this.currentUser?.id) {
+                    book.status = 'available';
+                    book.borrowedBy = null;
+                    book.borrowDate = null;
+                    this.userBorrowedBooks.delete(bookId);
+                    this.notify();
+                    return true;
+                }
+                return false;
+            }
+
+            setLoading(loading) {
+                this.isLoading = loading;
+                this.notify();
+            }
+        }
+
+        // Initialize state
+        const libraryState = new LibraryState();
+
+        // API Service (Mock implementation)
+        class LibraryAPI {
+            static async fetchBooks() {
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                return [
+                    {
+                        id: 1,
+                        title: "The Great Gatsby",
+                        author: "F. Scott Fitzgerald",
+                        category: "Fiction",
+                        isbn: "978-0-7432-7356-5",
+                        status: "available",
+                        description: "A classic American novel set in the Jazz Age.",
+                        publishYear: 1925,
+                        borrowedBy: null,
+                        borrowDate: null
+                    },
+                    {
+                        id: 2,
+                        title: "To Kill a Mockingbird",
+                        author: "Harper Lee",
+                        category: "Fiction",
+                        isbn: "978-0-06-112008-4",
+                        status: "available",
+                        description: "A gripping tale of racial injustice and childhood innocence.",
+                        publishYear: 1960,
+                        borrowedBy: null,
+                        borrowDate: null
+                    },
+                    {
+                        id: 3,
+                        title: "1984",
+                        author: "George Orwell",
+                        category: "Fiction",
+                        isbn: "978-0-452-28423-4",
+                        status: "borrowed",
+                        description: "A dystopian social science fiction novel.",
+                        publishYear: 1949,
+                        borrowedBy: "librarian_user",
+                        borrowDate: "2024-01-15"
+                    },
+                    {
+                        id: 4,
+                        title: "The Catcher in the Rye",
+                        author: "J.D. Salinger",
+                        category: "Fiction",
+                        isbn: "978-0-316-76948-0",
+                        status: "available",
+                        description: "A controversial novel about teenage rebellion.",
+                        publishYear: 1951,
+                        borrowedBy: null,
+                        borrowDate: null
+                    },
+                    {
+                        id: 5,
+                        title: "A Brief History of Time",
+                        author: "Stephen Hawking",
+                        category: "Science",
+                        isbn: "978-0-553-38016-3",
+                        status: "available",
+                        description: "A landmark volume in science writing.",
+                        publishYear: 1988,
+                        borrowedBy: null,
+                        borrowDate: null
+                    },
+                    {
+                        id: 6,
+                        title: "Clean Code",
+                        author: "Robert C. Martin",
+                        category: "Technology",
+                        isbn: "978-0-13-235088-4",
+                        status: "available",
+                        description: "A handbook of agile software craftsmanship.",
+                        publishYear: 2008,
+                        borrowedBy: null,
+                        borrowDate: null
+                    },
+                    {
+                        id: 7,
+                        title: "Sapiens",
+                        author: "Yuval Noah Harari",
+                        category: "History",
+                        isbn: "978-0-06-231609-7",
+                        status: "borrowed",
+                        description: "A brief history of humankind.",
+                        publishYear: 2011,
+                        borrowedBy: "john_doe",
+                        borrowDate: "2024-01-10"
+                    },
+                    {
+                        id: 8,
+                        title: "The Lean Startup",
+                        author: "Eric Ries",
+                        category: "Non-Fiction",
+                        isbn: "978-0-307-88789-4",
+                        status: "available",
+                        description: "How today's entrepreneurs use continuous innovation.",
+                        publishYear: 2011,
+                        borrowedBy: null,
+                        borrowDate: null
+                    }
+                ];
+            }
+        }
+
+        // UI Components
+        class BookCard {
+            static render(book) {
+                const currentUser = libraryState.currentUser;
+                const isUserBook = book.borrowedBy === currentUser?.id;
+                const canBorrow = book.status === 'available';
+                const canReturn = isUserBook;
+
+                return `
+                    <div class="book-card bg-white rounded-lg shadow-md overflow-hidden">
+                        <div class="p-6">
+                            <div class="flex items-start justify-between mb-4">
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-1">${book.title}</h3>
+                                    <p class="text-sm text-gray-600 mb-2">by ${book.author}</p>
+                                    <span class="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                        ${book.category}
+                                    </span>
+                                </div>
+                                <div class="ml-4">
+                                    ${book.status === 'available' 
+                                        ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check-circle mr-1"></i>Available</span>'
+                                        : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><i class="fas fa-times-circle mr-1"></i>Borrowed</span>'
+                                    }
+                                </div>
+                            </div>
+                            
+                            <p class="text-sm text-gray-700 mb-4 line-clamp-2">${book.description}</p>
+                            
+                            <div class="flex items-center justify-between text-xs text-gray-500 mb-4">
+                                <span><i class="fas fa-calendar mr-1"></i>Published: ${book.publishYear}</span>
+                                <span><i class="fas fa-barcode mr-1"></i>ISBN: ${book.isbn}</span>
+                            </div>
+                            
+                            ${book.borrowedBy && book.borrowDate ? `
+                                <div class="text-xs text-gray-500 mb-4">
+                                    <i class="fas fa-user mr-1"></i>
+                                    ${isUserBook ? 'Borrowed by you' : 'Borrowed'} on ${book.borrowDate}
+                                </div>
+                            ` : ''}
+                            
+                            <div class="flex space-x-2">
+                                ${canBorrow ? `
+                                    <button 
+                                        onclick="borrowBook(${book.id})"
+                                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                                    >
+                                        <i class="fas fa-hand-holding mr-2"></i>Borrow
+                                    </button>
+                                ` : ''}
+                                
+                                ${canReturn ? `
+                                    <button 
+                                        onclick="returnBook(${book.id})"
+                                        class="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                                    >
+                                        <i class="fas fa-undo mr-2"></i>Return
+                                    </button>
+                                ` : ''}
+                                
+                                <button class="bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium py-2 px-4 rounded-lg transition-colors duration-200">
+                                    <i class="fas fa-info-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Signup Controller
+        class SignupController {
+            constructor() {
+                this.setupEventListeners();
+                this.setupValidation();
+            }
+
+            setupEventListeners() {
+                const signupForm = document.getElementById('signupForm');
+                const showLoginBtn = document.getElementById('showLoginBtn');
+                const showSignupBtn = document.getElementById('showSignupBtn');
+
+                signupForm.addEventListener('submit', this.handleSignup.bind(this));
+                showLoginBtn.addEventListener('click', this.showLoginPage.bind(this));
+                showSignupBtn.addEventListener('click', this.showSignupPage.bind(this));
+            }
+
+            setupValidation() {
+                const passwordInput = document.getElementById('signupPassword');
+                const confirmPasswordInput = document.getElementById('signupConfirmPassword');
+                const usernameInput = document.getElementById('signupUsername');
+                const emailInput = document.getElementById('signupEmail');
+
+                passwordInput.addEventListener('input', this.validatePassword.bind(this));
+                confirmPasswordInput.addEventListener('input', this.validateConfirmPassword.bind(this));
+                usernameInput.addEventListener('blur', this.validateUsername.bind(this));
+                emailInput.addEventListener('blur', this.validateEmail.bind(this));
+            }
+
+            validatePassword() {
+                const password = document.getElementById('signupPassword').value;
+                const strengthBar = document.getElementById('passwordStrength');
+                const errorDiv = document.getElementById('passwordError');
+
+                if (password.length === 0) {
+                    strengthBar.className = 'password-strength bg-gray-200';
+                    this.hideError('passwordError');
+                    return true;
+                }
+
+                const validation = ValidationService.validatePassword(password);
+                
+                // Update strength bar
+                strengthBar.className = `password-strength strength-${validation.strength}`;
+                
+                if (!validation.isValid) {
+                    this.showError('passwordError', 'Password must be at least 8 characters with uppercase, lowercase, and number');
+                    return false;
+                } else {
+                    this.hideError('passwordError');
+                    return true;
+                }
+            }
+
+            validateConfirmPassword() {
+                const password = document.getElementById('signupPassword').value;
+                const confirmPassword = document.getElementById('signupConfirmPassword').value;
+
+                if (confirmPassword.length === 0) {
+                    this.hideError('confirmPasswordError');
+                    return true;
+                }
+
+                if (password !== confirmPassword) {
+                    this.showError('confirmPasswordError', 'Passwords do not match');
+                    return false;
+                } else {
+                    this.hideError('confirmPasswordError');
+                    return true;
+                }
+            }
+
+            validateUsername() {
+                const username = document.getElementById('signupUsername').value;
+                
+                if (!ValidationService.validateUsername(username)) {
+                    this.showError('usernameError', 'Username must be at least 3 characters and contain only letters, numbers, and underscores');
+                    return false;
+                } else {
+                    this.hideError('usernameError');
+                    return true;
+                }
+            }
+
+            validateEmail() {
+                const email = document.getElementById('signupEmail').value;
+                
+                if (!ValidationService.validateEmail(email)) {
+                    this.showError('emailError', 'Please enter a valid email address');
+                    return false;
+                } else {
+                    this.hideError('emailError');
+                    return true;
+                }
+            }
+
+            showError(elementId, message) {
+                const errorDiv = document.getElementById(elementId);
+                const inputId = elementId.replace('Error', '');
+                const input = document.getElementById(inputId) || document.getElementById('signup' + inputId.charAt(0).toUpperCase() + inputId.slice(1));
+                
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                if (input) input.classList.add('input-error');
+            }
+
+            hideError(elementId) {
+                const errorDiv = document.getElementById(elementId);
+                const inputId = elementId.replace('Error', '');
+                const input = document.getElementById(inputId) || document.getElementById('signup' + inputId.charAt(0).toUpperCase() + inputId.slice(1));
+                
+                errorDiv.style.display = 'none';
+                if (input) input.classList.remove('input-error');
+            }
+
+            validateForm() {
+                const firstName = document.getElementById('signupFirstName').value.trim();
+                const lastName = document.getElementById('signupLastName').value.trim();
+                const email = document.getElementById('signupEmail').value.trim();
+                const username = document.getElementById('signupUsername').value.trim();
+                const password = document.getElementById('signupPassword').value;
+                const confirmPassword = document.getElementById('signupConfirmPassword').value;
+                const role = document.getElementById('signupRole').value;
+                const agreeTerms = document.getElementById('agreeTerms').checked;
+
+                let isValid = true;
+
+                // Validate first name
+                if (!ValidationService.validateName(firstName)) {
+                    this.showError('firstNameError', 'First name must be at least 2 characters and contain only letters');
+                    isValid = false;
+                } else {
+                    this.hideError('firstNameError');
+                }
+
+                // Validate last name
+                if (!ValidationService.validateName(lastName)) {
+                    this.showError('lastNameError', 'Last name must be at least 2 characters and contain only letters');
+                    isValid = false;
+                } else {
+                    this.hideError('lastNameError');
+                }
+
+                // Validate email
+                if (!this.validateEmail()) isValid = false;
+
+                // Validate username
+                if (!this.validateUsername()) isValid = false;
+
+                // Validate password
+                if (!this.validatePassword()) isValid = false;
+
+                // Validate confirm password
+                if (!this.validateConfirmPassword()) isValid = false;
+
+                // Validate role
+                if (!role) {
+                    this.showError('roleError', 'Please select a role');
+                    isValid = false;
+                } else {
+                    this.hideError('roleError');
+                }
+
+                // Validate terms agreement
+                if (!agreeTerms) {
+                    this.showError('termsError', 'You must agree to the terms and conditions');
+                    isValid = false;
+                } else {
+                    this.hideError('termsError');
+                }
+
+                return isValid;
+            }
+
+            async handleSignup(event) {
+                event.preventDefault();
+                
+                if (!this.validateForm()) {
+                    return;
+                }
+
+                const formData = {
+                    firstName: document.getElementById('signupFirstName').value.trim(),
+                    lastName: document.getElementById('signupLastName').value.trim(),
+                    email: document.getElementById('signupEmail').value.trim(),
+                    username: document.getElementById('signupUsername').value.trim(),
+                    password: document.getElementById('signupPassword').value,
+                    role: document.getElementById('signupRole').value
+                };
+
+                const signupButton = document.getElementById('signupButton');
+                const signupButtonText = document.getElementById('signupButtonText');
+                const signupSpinner = document.getElementById('signupSpinner');
+
+                // Show loading state
+                signupButton.disabled = true;
+                signupButtonText.textContent = 'Creating Account...';
+                signupSpinner.style.display = 'block';
+
+                try {
+                    const user = await AuthService.signup(formData);
+                    libraryState.setCurrentUser(user);
+                    
+                    NotificationService.show('Account Created!', `Welcome to the library, ${user.name}!`);
+                    
+                    // Transition to main app
+                    setTimeout(() => {
+                        this.showMainApp();
+                    }, 1000);
+                    
+                } catch (error) {
+                    NotificationService.show('Signup Failed', error.message, 'error');
+                    
+                    // Show specific field errors
+                    if (error.message.includes('Username')) {
+                        this.showError('usernameError', error.message);
+                    } else if (error.message.includes('Email')) {
+                        this.showError('emailError', error.message);
+                    }
+                } finally {
+                    // Reset button state
+                    signupButton.disabled = false;
+                    signupButtonText.textContent = 'Create Account';
+                    signupSpinner.style.display = 'none';
+                }
+            }
+
+            showSignupPage() {
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('signupPage').style.display = 'flex';
+            }
+
+            showLoginPage() {
+                document.getElementById('signupPage').style.display = 'none';
+                document.getElementById('loginPage').style.display = 'flex';
+            }
+
+            showMainApp() {
+                const signupPage = document.getElementById('signupPage');
+                const mainApp = document.getElementById('mainApp');
+                
+                signupPage.style.display = 'none';
+                mainApp.classList.remove('page-hidden');
+                
+                // Initialize main app
+                initializeMainApp();
+            }
+        }
+
+        // Login Controller
+        class LoginController {
+            constructor() {
+                this.setupEventListeners();
+            }
+
+            setupEventListeners() {
+                const loginForm = document.getElementById('loginForm');
+                loginForm.addEventListener('submit', this.handleLogin.bind(this));
+            }
+
+            async handleLogin(event) {
+                event.preventDefault();
+                
+                const username = document.getElementById('loginUsername').value;
+                const password = document.getElementById('loginPassword').value;
+                const loginButton = document.getElementById('loginButton');
+                const loginButtonText = document.getElementById('loginButtonText');
+                const loginSpinner = document.getElementById('loginSpinner');
+
+                // Show loading state
+                loginButton.disabled = true;
+                loginButtonText.textContent = 'Signing In...';
+                loginSpinner.style.display = 'block';
+
+                try {
+                    const user = await AuthService.login(username, password);
+                    libraryState.setCurrentUser(user);
+                    
+                    NotificationService.show('Welcome!', `Successfully logged in as ${user.name}`);
+                    
+                    // Transition to main app
+                    setTimeout(() => {
+                        this.showMainApp();
+                    }, 500);
+                    
+                } catch (error) {
+                    NotificationService.show('Login Failed', error.message, 'error');
+                } finally {
+                    // Reset button state
+                    loginButton.disabled = false;
+                    loginButtonText.textContent = 'Sign In';
+                    loginSpinner.style.display = 'none';
+                }
+            }
+
+            showMainApp() {
+                const loginPage = document.getElementById('loginPage');
+                const mainApp = document.getElementById('mainApp');
+                
+                loginPage.style.display = 'none';
+                mainApp.classList.remove('page-hidden');
+                
+                // Initialize main app
+                initializeMainApp();
+            }
+        }
+
+        // UI Controller
+        class UIController {
+            constructor() {
+                this.setupEventListeners();
+                libraryState.subscribe(this.render.bind(this));
+            }
+
+            setupEventListeners() {
+                const searchInput = document.getElementById('searchInput');
+                const categoryFilter = document.getElementById('categoryFilter');
+                const statusFilter = document.getElementById('statusFilter');
+                const userMenuButton = document.getElementById('userMenuButton');
+                const logoutButton = document.getElementById('logoutButton');
+
+                searchInput.addEventListener('input', this.handleSearch.bind(this));
+                categoryFilter.addEventListener('change', this.handleFilter.bind(this));
+                statusFilter.addEventListener('change', this.handleFilter.bind(this));
+                userMenuButton.addEventListener('click', this.toggleUserMenu.bind(this));
+                logoutButton.addEventListener('click', this.handleLogout.bind(this));
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (event) => {
+                    const dropdown = document.getElementById('userDropdown');
+                    const button = document.getElementById('userMenuButton');
+                    
+                    if (!button.contains(event.target) && !dropdown.contains(event.target)) {
+                        dropdown.style.display = 'none';
+                    }
+                });
+            }
+
+            toggleUserMenu() {
+                const dropdown = document.getElementById('userDropdown');
+                dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            }
+
+            handleLogout() {
+                AuthService.logout();
+                NotificationService.show('Logged Out', 'You have been successfully logged out.');
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            }
+
+            handleSearch(event) {
+                const query = event.target.value.toLowerCase();
+                this.filterBooks(query);
+            }
+
+            handleFilter() {
+                const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+                this.filterBooks(searchQuery);
+            }
+
+            filterBooks(searchQuery = '') {
+                const categoryFilter = document.getElementById('categoryFilter').value;
+                const statusFilter = document.getElementById('statusFilter').value;
+
+                let filtered = libraryState.books.filter(book => {
+                    const matchesSearch = book.title.toLowerCase().includes(searchQuery) || 
+                                        book.author.toLowerCase().includes(searchQuery);
+                    const matchesCategory = !categoryFilter || book.category === categoryFilter;
+                    const matchesStatus = !statusFilter || book.status === statusFilter;
+
+                    return matchesSearch && matchesCategory && matchesStatus;
+                });
+
+                libraryState.setFilteredBooks(filtered);
+            }
+
+            render(state) {
+                this.updateUserInfo(state);
+                this.updateStatistics(state);
+                this.updateBooksGrid(state);
+                this.updateLoadingState(state);
+            }
+
+            updateUserInfo(state) {
+                if (state.currentUser) {
+                    document.getElementById('currentUserName').textContent = state.currentUser.name;
+                    document.getElementById('dropdownUserName').textContent = state.currentUser.name;
+                    document.getElementById('dropdownUserRole').textContent = state.currentUser.role;
+                }
+            }
+
+            updateStatistics(state) {
+                const totalBooks = state.books.length;
+                const availableBooks = state.books.filter(b => b.status === 'available').length;
+                const borrowedBooks = state.books.filter(b => b.status === 'borrowed').length;
+                const myBorrowedBooks = state.books.filter(b => b.borrowedBy === state.currentUser?.id).length;
+
+                document.getElementById('totalBooks').textContent = totalBooks;
+                document.getElementById('availableBooks').textContent = availableBooks;
+                document.getElementById('borrowedBooks').textContent = borrowedBooks;
+                document.getElementById('myBorrowedBooks').textContent = myBorrowedBooks;
+                document.getElementById('borrowedCount').textContent = myBorrowedBooks;
+            }
+
+            updateBooksGrid(state) {
+                const booksGrid = document.getElementById('booksGrid');
+                const noResults = document.getElementById('noResults');
+
+                if (state.filteredBooks.length === 0 && !state.isLoading) {
+                    booksGrid.style.display = 'none';
+                    noResults.style.display = 'block';
+                } else {
+                    booksGrid.style.display = 'grid';
+                    noResults.style.display = 'none';
+                    booksGrid.innerHTML = state.filteredBooks.map(book => BookCard.render(book)).join('');
+                }
+            }
+
+            updateLoadingState(state) {
+                const loadingState = document.getElementById('loadingState');
+                const booksGrid = document.getElementById('booksGrid');
+
+                if (state.isLoading) {
+                    loadingState.style.display = 'flex';
+                    booksGrid.style.display = 'none';
+                } else {
+                    loadingState.style.display = 'none';
+                }
+            }
+        }
+
+        // Notification System
+        class NotificationService {
+            static show(title, message, type = 'success') {
+                const notification = document.getElementById('notification');
+                const titleEl = document.getElementById('notificationTitle');
+                const messageEl = document.getElementById('notificationMessage');
+                const icon = notification.querySelector('i');
+
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+
+                // Update styling based on type
+                notification.className = 'notification bg-white rounded-lg shadow-lg border-l-4 p-4 max-w-sm';
+                
+                if (type === 'success') {
+                    notification.classList.add('border-green-500');
+                    icon.className = 'fas fa-check-circle text-green-500 mr-3';
+                } else if (type === 'error') {
+                    notification.classList.add('border-red-500');
+                    icon.className = 'fas fa-exclamation-circle text-red-500 mr-3';
+                }
+
+                notification.classList.add('show');
+
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // Global Functions
+        function borrowBook(bookId) {
+            if (libraryState.borrowBook(bookId)) {
+                NotificationService.show('Book Borrowed!', 'You have successfully borrowed this book.');
+            } else {
+                NotificationService.show('Error', 'Unable to borrow this book.', 'error');
+            }
+        }
+
+        function returnBook(bookId) {
+            if (libraryState.returnBook(bookId)) {
+                NotificationService.show('Book Returned!', 'You have successfully returned this book.');
+            } else {
+                NotificationService.show('Error', 'Unable to return this book.', 'error');
+            }
+        }
+
+        // Initialize Main Application
+        async function initializeMainApp() {
+            const uiController = new UIController();
+            
+            libraryState.setLoading(true);
+            
+            try {
+                const books = await LibraryAPI.fetchBooks();
+                
+                // Set initial borrowed books for current user
+                books.forEach(book => {
+                    if (book.borrowedBy === libraryState.currentUser?.id) {
+                        libraryState.userBorrowedBooks.add(book.id);
+                    }
+                });
+                
+                libraryState.setBooks(books);
+            } catch (error) {
+                console.error('Failed to load books:', error);
+                NotificationService.show('Error', 'Failed to load books. Please try again.', 'error');
+            } finally {
+                libraryState.setLoading(false);
+            }
+        }
+
+        // Initialize Application
+        function initializeApp() {
+            // Initialize controllers
+            const loginController = new LoginController();
+            const signupController = new SignupController();
+            
+            // Check if user is already logged in
+            const currentUser = AuthService.getCurrentUser();
+            
+            if (currentUser) {
+                // User is logged in, show main app
+                libraryState.setCurrentUser(currentUser);
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('mainApp').classList.remove('page-hidden');
+                initializeMainApp();
+            }
+            // If not logged in, login page is already visible by default
+        }
+
+        // Start the application
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
